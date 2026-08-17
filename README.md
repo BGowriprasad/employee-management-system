@@ -14,6 +14,7 @@ The application provides **JWT-based authentication, Role-Based Access Control (
 - JWT authentication
 - JWT protected routes
 - Role-Based Access Control (RBAC)
+- Interactive API documentation using Swagger/OpenAPI
 - User and Admin roles
 - Employee CRUD operations
 - Department CRUD operations
@@ -43,6 +44,7 @@ The application provides **JWT-based authentication, Role-Based Access Control (
 | TypeScript | Programming language |
 | MySQL | Database |
 | TypeORM | ORM and database interaction |
+| Swagger / OpenAPI | API documentation and interactive testing |
 | JWT | Authentication |
 | Passport | JWT authentication strategy |
 | bcrypt | Password hashing |
