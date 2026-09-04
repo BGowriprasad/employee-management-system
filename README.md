@@ -1,254 +1,151 @@
 # Employee Management System
 
-A backend REST API for managing employees and departments, built with **NestJS, TypeScript, MySQL, and TypeORM**.
+A NestJS REST API for managing employees and departments with MySQL, TypeORM, JWT authentication, and role-based access control.
 
-The application provides **JWT-based authentication, Role-Based Access Control (RBAC), employee and department management, DTO validation, filtering, and business-rule validation**.
+## Features
 
----
+- User registration and login with bcrypt password hashing
+- JWT authentication with configurable token expiration
+- `user` and `admin` roles
+- Employee and department CRUD operations
+- Employee filtering, sorting, and pagination
+- Department-to-employee relationship handling without circular responses
+- Duplicate and relationship business rules
+- Global request validation and security headers
+- Login rate limiting
+- Swagger/OpenAPI documentation
+- Jest unit tests and Supertest end-to-end tests
 
-## 🚀 Features
-
-- User registration
-- User login with email and password
-- Password hashing using bcrypt
-- JWT authentication
-- JWT protected routes
-- Role-Based Access Control (RBAC)
-- Interactive API documentation using Swagger/OpenAPI
-- User and Admin roles
-- Employee CRUD operations
-- Department CRUD operations
-- Employee and Department relationship
-- Employee filtering by:
-  - Minimum salary
-  - Maximum salary
-  - Department
-- Dynamic filtering using TypeORM QueryBuilder
-- DTO validation using class-validator
-- Global ValidationPipe
-- HTTP exception handling
-- Duplicate department protection
-- Prevent deletion of departments that have employees assigned
-- Environment-based configuration
-- MySQL database integration using TypeORM
-- ESLint code quality checks
-- TypeScript production build
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Technology | Purpose |
-|---|---|
-| NestJS | Backend framework |
-| TypeScript | Programming language |
-| MySQL | Database |
-| TypeORM | ORM and database interaction |
-| Swagger / OpenAPI | API documentation and interactive testing |
-| JWT | Authentication |
-| Passport | JWT authentication strategy |
+| --- | --- |
+| NestJS | Application framework |
+| TypeScript | Application language |
+| MySQL | Relational database |
+| TypeORM | ORM and migrations |
+| Passport JWT | Token authentication |
+| `@nestjs/throttler` | Login rate limiting |
 | bcrypt | Password hashing |
-| class-validator | Request validation |
-| class-transformer | DTO transformation |
-| ESLint | Code quality |
+| class-validator / class-transformer | DTO validation and transformation |
+| Swagger / OpenAPI | Interactive API documentation |
+| Jest / Supertest | Unit and E2E testing |
+| ESLint | Static analysis and code quality |
 
----
+## Architecture
 
-# 📁 Project Structure
+The application is organized into NestJS modules:
 
-```text
-employee-management-system/
-│
-├── src/
-│   │
-│   ├── auth/
-│   │   ├── dto/
-│   │   ├── get-user/
-│   │   ├── jwt-auth/
-│   │   ├── jwt.strategy/
-│   │   └── roles/
-│   │
-│   ├── users/
-│   │   ├── dto/
-│   │   ├── entities/
-│   │   ├── users.controller.ts
-│   │   ├── users.service.ts
-│   │   └── users.module.ts
-│   │
-│   ├── employees/
-│   │   ├── dto/
-│   │   ├── entities/
-│   │   ├── employees.controller.ts
-│   │   ├── employees.service.ts
-│   │   └── employees.module.ts
-│   │
-│   ├── departments/
-│   │   ├── dto/
-│   │   ├── entities/
-│   │   ├── departments.controller.ts
-│   │   ├── departments.service.ts
-│   │   └── departments.module.ts
-│   │
-│   ├── app.module.ts
-│   └── main.ts
-│
-├── .env.example
-├── .gitignore
-├── nest-cli.json
-├── package.json
-├── package-lock.json
-├── tsconfig.json
-└── README.md
-```
+- `auth`: login, JWT strategy, authentication guard, role guard, and profile access
+- `users`: public user registration and user lookup for authentication
+- `employees`: employee CRUD, filtering, sorting, pagination, and department assignment
+- `departments`: department CRUD and employee relationship responses
+- `common`: shared TypeORM exception handling
+- `config`: environment validation
 
----
+Requests pass through controllers and guards to services, which use TypeORM repositories or QueryBuilder against MySQL.
 
-# 🔐 Authentication
-
-The application uses **JWT (JSON Web Token)** for authentication.
-
-## Authentication Flow
+## Project Structure
 
 ```text
-User
- │
- ▼
-Register
- │
- ▼
-Password hashed using bcrypt
- │
- ▼
-User stored in MySQL
- │
- ▼
-Login
- │
- ▼
-Email + Password validation
- │
- ▼
-JWT generated
- │
- ▼
-Client receives access token
- │
- ▼
-Token sent with protected requests
+src/
+├── auth/
+├── common/
+├── config/
+├── departments/
+├── employees/
+├── users/
+├── app.module.ts
+├── data-source.ts
+└── main.ts
+test/
+└── app.e2e-spec.ts
 ```
 
-Protected requests use:
+## Requirements
 
-```http
-Authorization: Bearer <access_token>
+- Node.js
+- npm
+- MySQL
+
+Create the database named by `DB_DATABASE` before running migrations.
+
+## Setup
+
+```bash
+git clone https://github.com/BGowriprasad/employee-management-system.git
+cd employee-management-system
+npm install
 ```
 
----
+Create `.env` from `.env.example` and provide valid values. Environment files are ignored by Git.
 
-# 🔑 JWT Payload
+### Environment Variables
 
-After successful login, the JWT contains information such as:
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=your-database-password
+DB_DATABASE=employee_management_system
+
+JWT_SECRET=your-random-secret-at-least-32-characters
+JWT_EXPIRES_IN=1h
+
+PORT=3002
+```
+
+Required variables are validated at startup. `DB_PORT` and `PORT` must be valid ports, and `JWT_SECRET` must be at least 32 characters. `PORT` defaults to `3002` when omitted.
+
+For E2E tests, create `.env.test` with a separate test database, for example:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=your-database-password
+DB_DATABASE=employee_management_system_test
+JWT_SECRET=your-test-secret-at-least-32-characters
+JWT_EXPIRES_IN=1h
+```
+
+The `test:e2e` script sets `NODE_ENV=test`. E2E teardown requires this environment and a database name ending in `_test` before dropping the database.
+
+## Database and Migrations
+
+TypeORM uses MySQL with `synchronize: false`. Migrations run when the application starts.
+
+```bash
+npm run migration:run
+npm run migration:revert
+npm run migration:generate
+npm run migration:create
+```
+
+The initial schema creates users, departments, employees, unique email/name constraints, and a restricted employee-to-department foreign key. A department with assigned employees cannot be deleted.
+
+## Running the Application
+
+```bash
+npm run start       # Start normally
+npm run start:dev   # Watch mode
+npm run start:prod  # Run compiled dist output
+```
+
+The default base URL is `http://localhost:3002`.
+
+## Authentication and RBAC
+
+Register through `POST /users`, then log in through `POST /auth/login`:
 
 ```json
 {
-  "sub": 1,
   "email": "user@example.com",
-  "role": "user"
-}
-```
-
-The JWT strategy validates the token and makes the authenticated user available through:
-
-```text
-request.user
-```
-
----
-
-# 👥 Role-Based Access Control
-
-The application implements **RBAC (Role-Based Access Control)**.
-
-Currently supported roles:
-
-- `user`
-- `admin`
-
-RBAC is implemented using:
-
-- `JwtAuthGuard`
-- `RolesGuard`
-- `@Roles()` decorator
-
-## User Permissions
-
-| Operation | User |
-|---|---:|
-| View employees | ✅ |
-| View departments | ✅ |
-| Create employee | ❌ |
-| Update employee | ❌ |
-| Delete employee | ❌ |
-| Create department | ❌ |
-| Update department | ❌ |
-| Delete department | ❌ |
-
-## Admin Permissions
-
-| Operation | Admin |
-|---|---:|
-| View employees | ✅ |
-| View departments | ✅ |
-| Create employee | ✅ |
-| Update employee | ✅ |
-| Delete employee | ✅ |
-| Create department | ✅ |
-| Update department | ✅ |
-| Delete department | ✅ |
-
----
-
-# 👤 User API
-
-## Register User
-
-```http
-POST /users
-```
-
-Example:
-
-```json
-{
-  "name": "Gowri",
-  "email": "gowri@gmail.com",
-  "password": "password123",
-  "role": "user"
-}
-```
-
-The password is hashed using **bcrypt** before it is stored in the database.
-
----
-
-# 🔐 Authentication API
-
-## Login
-
-```http
-POST /auth/login
-```
-
-Example request:
-
-```json
-{
-  "email": "gowri@gmail.com",
   "password": "password123"
 }
 ```
 
-Example response:
+The login response contains an access token:
 
 ```json
 {
@@ -256,644 +153,140 @@ Example response:
 }
 ```
 
-Use the returned token for protected endpoints:
+Send it on protected requests:
 
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
 
----
+The token contains the user ID, email, and role. Expired or invalid tokens return `401 Unauthorized`. Login is limited to 10 attempts per minute per client key.
 
-## Get Profile
+| Operation | Authenticated user | Admin |
+| --- | ---: | ---: |
+| View employees | Yes | Yes |
+| View departments | Yes | Yes |
+| Create, update, or delete employees | No | Yes |
+| Create, update, or delete departments | No | Yes |
 
-```http
-GET /auth/profile
-```
+## API Endpoints
 
-Requires:
+All endpoints below are relative to `http://localhost:3002`.
 
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
+### Users and Authentication
 
-Example response:
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/users` | Public | Register a user |
+| `POST` | `/auth/login` | Public | Authenticate and receive a JWT |
+| `GET` | `/auth/profile` | JWT | Return the authenticated user projection |
 
-```json
-{
-  "userId": 1,
-  "email": "gowri@gmail.com",
-  "role": "admin"
-}
-```
+Passwords are never returned in the profile response.
 
----
+### Employees
 
-# 👨‍💼 Employee API
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/employees` | JWT | List employees |
+| `GET` | `/employees/:id` | JWT | Get one employee with its department |
+| `POST` | `/employees` | Admin | Create an employee |
+| `PATCH` | `/employees/:id` | Admin | Partially update an employee |
+| `DELETE` | `/employees/:id` | Admin | Delete an employee |
 
-Base URL:
+`GET /employees` supports:
 
-```text
-http://localhost:3002/employees
-```
+- `page` and `limit` (positive integers; `limit` maximum is 100)
+- `sortBy`: `id`, `name`, `email`, or `salary`
+- `order`: `ASC` or `DESC`
+- `minSalary` and `maxSalary` (numeric strings, including `0`)
+- `department` (department name)
 
-Employee management uses TypeORM repositories and QueryBuilder.
+The list response has `data` and `meta` fields containing pagination details.
 
----
+### Departments
 
-## Get All Employees
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/departments` | JWT | List departments with employees |
+| `GET` | `/departments/:id` | JWT | Get one department with employees |
+| `POST` | `/departments` | Admin | Create a department |
+| `PATCH` | `/departments/:id` | Admin | Partially update a department |
+| `DELETE` | `/departments/:id` | Admin | Delete an unassigned department |
 
-```http
-GET /employees
-```
+Department responses include an `employees` array. Each nested employee omits its `department` back-reference to prevent circular serialization.
 
-Example:
+## Validation and Error Handling
 
-```http
-GET http://localhost:3002/employees
-```
+The global `ValidationPipe` enables:
 
-Authentication:
+- DTO validation with `class-validator`
+- Type transformation for request values
+- Rejection of unknown properties
+- Validation of route IDs, pagination, salary filters, email addresses, salaries, and required fields
 
-```text
-Required
-```
+Common responses include:
 
----
+| Status | Meaning |
+| --- | --- |
+| `201` | Resource created or login completed |
+| `200` | Successful read, update, or delete |
+| `400` | Invalid input or deletion blocked by assigned employees |
+| `401` | Missing, invalid, or expired JWT; invalid credentials |
+| `403` | Authenticated user lacks the admin role |
+| `404` | Requested employee, department, or referenced department does not exist |
+| `409` | Duplicate user email, employee email, or department name |
 
-## Filter Employees
+## Swagger / OpenAPI
 
-Employees can be filtered using query parameters.
-
-### Minimum Salary
-
-```http
-GET /employees?minSalary=50000
-```
-
-### Maximum Salary
-
-```http
-GET /employees?maxSalary=80000
-```
-
-### Department
-
-```http
-GET /employees?department=IT
-```
-
-### Multiple Filters
-
-```http
-GET /employees?minSalary=50000&maxSalary=80000&department=IT
-```
-
-The filtering is implemented using **TypeORM QueryBuilder**.
-
----
-
-## Get Employee by ID
-
-```http
-GET /employees/:id
-```
-
-Example:
-
-```http
-GET /employees/1
-```
-
----
-
-## Create Employee
-
-Admin access required.
-
-```http
-POST /employees
-```
-
-Example request:
-
-```json
-{
-  "name": "John",
-  "email": "john@gmail.com",
-  "salary": 60000,
-  "departmentId": 1
-}
-```
-
----
-
-## Update Employee
-
-Admin access required.
-
-```http
-PATCH /employees/:id
-```
-
-Example:
-
-```http
-PATCH /employees/1
-```
-
-Request:
-
-```json
-{
-  "salary": 70000
-}
-```
-
-Only the fields that need to be updated have to be provided.
-
----
-
-## Delete Employee
-
-Admin access required.
-
-```http
-DELETE /employees/:id
-```
-
-Example:
-
-```http
-DELETE /employees/1
-```
-
----
-
-# 🏢 Department API
-
-Base URL:
+Start the application and open:
 
 ```text
-http://localhost:3002/departments
+http://localhost:3002/api-docs
 ```
 
----
-
-## Get All Departments
-
-```http
-GET /departments
-```
-
----
-
-## Get Department by ID
-
-```http
-GET /departments/:id
-```
-
-Example:
-
-```http
-GET /departments/1
-```
-
----
-
-## Create Department
-
-Admin access required.
-
-```http
-POST /departments
-```
-
-Example:
-
-```json
-{
-  "name": "IT",
-  "location": "Hyderabad"
-}
-```
-
----
-
-## Update Department
-
-Admin access required.
-
-```http
-PATCH /departments/:id
-```
-
-Example:
-
-```http
-PATCH /departments/1
-```
-
-Request:
-
-```json
-{
-  "location": "Bangalore"
-}
-```
-
----
-
-## Delete Department
-
-Admin access required.
-
-```http
-DELETE /departments/:id
-```
-
-Example:
-
-```http
-DELETE /departments/1
-```
-
----
-
-# 🛡️ Business Rules
-
-## Duplicate Department Protection
-
-Department names are unique.
-
-If a department with the same name already exists, the API returns:
-
-```http
-409 Conflict
-```
-
-Example:
-
-```json
-{
-  "message": "Department with name 'IT' already exists",
-  "error": "Conflict",
-  "statusCode": 409
-}
-```
-
----
-
-## Prevent Department Deletion When Employees Are Assigned
-
-A department cannot be deleted while employees are assigned to it.
-
-Example response:
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "message": "Cannot delete department because employees are assigned to it",
-  "error": "Bad Request",
-  "statusCode": 400
-}
-```
-
-This prevents accidental deletion of a department that is still being used by employees.
-
----
-
-# ✅ Validation
-
-The application uses NestJS's global `ValidationPipe`.
-
-```typescript
-app.useGlobalPipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }),
-);
-```
-
-### Validation Features
-
-#### `whitelist`
-
-Removes properties that are not defined in the DTO.
-
-#### `forbidNonWhitelisted`
-
-Rejects requests containing unexpected properties.
-
-#### `transform`
-
-Enables transformation of incoming request data.
-
-DTO validation is implemented using `class-validator`.
-
-Examples:
-
-```typescript
-@IsString()
-@IsNotEmpty()
-
-@IsEmail()
-
-@IsNumber()
-```
-
----
-
-# 🗄️ Database
-
-The application uses:
-
-```text
-MySQL
-   ↓
-TypeORM
-   ↓
-NestJS Services
-```
-
-Database configuration is provided through environment variables.
-
----
-
-# 🔗 Database Relationship
-
-A department can have multiple employees.
-
-```text
-Department
-     │
-     │ 1
-     │
-     │
-     │ *
-     ▼
-Employee
-```
-
-The relationship is implemented using TypeORM:
-
-```typescript
-@OneToMany()
-```
-
-and:
-
-```typescript
-@ManyToOne()
-```
-
-This allows employees to be associated with departments.
-
----
-
-# 🔄 Application Request Flow
-
-A protected API request follows this flow:
-
-```text
-Client
-  │
-  ▼
-Controller
-  │
-  ▼
-JwtAuthGuard
-  │
-  ▼
-JWT Strategy
-  │
-  ▼
-RolesGuard
-  │
-  ▼
-Controller
-  │
-  ▼
-Service
-  │
-  ▼
-TypeORM Repository / QueryBuilder
-  │
-  ▼
-MySQL
-  │
-  ▼
-Response
-```
-
----
-
-# ⚙️ Environment Configuration
-
-Create a `.env` file in the project root.
-
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=root
-DB_PASSWORD=YOUR_DB_PASSWORD
-DB_DATABASE=employee_management_system
-
-JWT_SECRET=YOUR_JWT_SECRET
-JWT_EXPIRES_IN=1h
-
-PORT=3002
-```
-
-### Important
-
-Never commit your real `.env` file to GitHub.
-
-The project uses `.gitignore` to prevent environment files containing secrets from being committed.
-
-Use `.env.example` when sharing the project.
-
-Example:
-
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=root
-DB_PASSWORD=
-DB_DATABASE=employee_management_system
-
-JWT_SECRET=
-JWT_EXPIRES_IN=1h
-
-PORT=3002
-```
-
----
-
-# 📦 Installation
-
-## 1. Clone the repository
+Swagger documents the available routes and supports bearer-token authorization for protected requests.
+
+## Security
+
+- Passwords are hashed with bcrypt.
+- JWT secrets and database credentials are environment-sourced.
+- JWT expiration is enforced.
+- Protected routes use JWT authentication; mutations additionally require the admin role.
+- Login attempts are rate limited.
+- Unknown request properties are rejected.
+- SQL structure inputs such as sort fields and sort direction are allowlisted; filter values use bound parameters.
+- Helmet security headers are enabled.
+- CORS is enabled for the configured localhost frontend origins.
+- Test teardown is restricted to an explicitly marked test environment and test database.
+
+## Testing and Quality Checks
+
+Run the unit tests:
 
 ```bash
-git clone <your-repository-url>
+npm test
 ```
 
-## 2. Navigate to the project
+Run the E2E suite against `.env.test`:
 
 ```bash
-cd employee-management-system
+npm run test:e2e
 ```
 
-## 3. Install dependencies
+Generate the Jest coverage report:
 
 ```bash
-npm install
+npm run test:cov
 ```
 
-## 4. Configure environment variables
-
-Create a `.env` file:
-
-```text
-.env
-```
-
-Add your MySQL and JWT configuration.
-
----
-
-# ▶️ Running the Application
-
-## Development
-
-```bash
-npm run start
-```
-
-## Development Watch Mode
-
-```bash
-npm run start:dev
-```
-
-## Production
-
-```bash
-npm run start:prod
-```
-
-The application runs on:
-
-```text
-http://localhost:3002
-```
-
-unless a different port is provided through the `PORT` environment variable.
-
----
-
-# 🧪 Build and Code Quality
-
-## Build
-
-Compile the NestJS application:
-
-```bash
-npm run build
-```
-
-## ESLint
-
-Run ESLint:
+Run static analysis and compile the application:
 
 ```bash
 npm run lint
+npm run build
 ```
 
-The project should pass both checks before committing changes.
+The E2E suite covers authentication failures, JWT expiration, RBAC, profile password exclusion, duplicate resources, relationship serialization, partial employee updates, validation boundaries, and deletion rules.
 
----
+## License
 
-# 📋 API Summary
-
-## Authentication
-
-| Method | Endpoint | Authentication |
-|---|---|---|
-| POST | `/users` | Public |
-| POST | `/auth/login` | Public |
-| GET | `/auth/profile` | JWT |
-
-## Employees
-
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/employees` | Authenticated |
-| GET | `/employees/:id` | Authenticated |
-| POST | `/employees` | Admin |
-| PATCH | `/employees/:id` | Admin |
-| DELETE | `/employees/:id` | Admin |
-
-## Departments
-
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/departments` | Authenticated |
-| GET | `/departments/:id` | Authenticated |
-| POST | `/departments` | Admin |
-| PATCH | `/departments/:id` | Admin |
-| DELETE | `/departments/:id` | Admin |
-
----
-
-# 🔒 Security
-
-The application includes several security-related practices:
-
-- Passwords are hashed using bcrypt.
-- JWT secrets are stored in environment variables.
-- Protected endpoints use JWT authentication.
-- Role-based authorization is implemented through guards.
-- DTO validation prevents invalid request data.
-- Unknown request properties can be rejected.
-- Departments with assigned employees cannot be deleted.
-
----
-
-# 🚧 Future Improvements
-
-The current version focuses on the core Employee Management System functionality.
-
-Possible future improvements include:
-
-- Swagger / OpenAPI documentation
-- Pagination
-- Sorting
-- TypeORM migrations
-- Automated unit tests
-- Integration tests
-- API rate limiting
-- Refresh tokens
-- Password reset
-- Centralized logging
-- Production deployment
-- Docker support
-
-These are planned improvements and are **not part of the current core implementation**.
-
----
-
-# 👨‍💻 Author
-
-**Gowri Prasad**
-
----
-
-## 📄 License
-
-This project is created for learning and portfolio purposes.
+This project is private and currently marked `UNLICENSED` in `package.json`.

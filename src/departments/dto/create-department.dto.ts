@@ -15,5 +15,6 @@ export class CreateDepartmentDto {
     description: 'Location of the department',
   })
   @IsString()
-  location?: string;
+  @IsNotEmpty()
+  location!: string;
 }

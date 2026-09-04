@@ -12,27 +12,19 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // async getUserById(id: number) {
-  //   const user = await this.usersService.findOne(id);
-  //   if (!user) {
-  //     throw new UnauthorizedException(`User with ID ${id} not found`);
-  //   }
-  //   return user;
-  // }
-
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid Email ');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid  Password');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const payload = {

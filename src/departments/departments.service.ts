@@ -21,6 +21,21 @@ export class DepartmentsService {
     private readonly employeeRepository: Repository<Employee>,
   ) {}
 
+  private serializeDepartment(department: Department) {
+    return {
+      id: department.id,
+      name: department.name,
+      location: department.location,
+      employees: (department.employees ?? []).map((employee) =>
+        Object.fromEntries(
+          Object.entries(employee).filter(([key]) => key !== 'department'),
+        ),
+      ),
+      createdAt: department.createdAt,
+      updatedAt: department.updatedAt,
+    };
+  }
+
   async create(createDepartmentDto: CreateDepartmentDto) {
     const existingDepartment = await this.departmentRepository.findOne({
       where: {
@@ -36,22 +51,31 @@ export class DepartmentsService {
 
     const department = this.departmentRepository.create(createDepartmentDto);
 
-    return await this.departmentRepository.save(department);
+    return this.serializeDepartment(
+      await this.departmentRepository.save(department),
+    );
   }
 
   async findAll() {
-    return await this.departmentRepository.find();
+    const departments = await this.departmentRepository.find({
+      relations: { employees: true },
+    });
+
+    return departments.map((department) =>
+      this.serializeDepartment(department),
+    );
   }
 
   async findOne(id: number) {
     const department = await this.departmentRepository.findOne({
       where: { id },
+      relations: { employees: true },
     });
 
     if (!department) {
       throw new NotFoundException(`Department with ${id} not found`);
     }
-    return department;
+    return this.serializeDepartment(department);
   }
 
   async update(id: number, updateDepartmentDto: UpdateDepartmentDto) {
@@ -82,7 +106,9 @@ export class DepartmentsService {
       updateDepartmentDto,
     );
 
-    return this.departmentRepository.save(updatedDepartment);
+    return this.serializeDepartment(
+      await this.departmentRepository.save(updatedDepartment),
+    );
   }
 
   async remove(id: number) {
